@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="robots" content="noindex">
+<title>Vigía SOC</title>
+<link rel="icon" href="assets/icono.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/styles.css">
+<script src="assets/vendor/xlsx.full.min.js" defer></script>
+<script src="assets/vendor/chart.umd.min.js" defer></script>
+<script src="assets/vendor/jspdf.umd.min.js" defer></script>
+<script src="assets/vendor/jspdf.plugin.autotable.min.js" defer></script>
+<script src="assets/engine.js" defer></script>
+<script src="assets/app.js" defer></script>
+</head>
+<body>
+<div class="sheet">
+<header class="top"><div class="wrap">
+  <div class="brand">Vigía <span>SOC</span><small>Análisis de eventos de seguridad</small></div>
+  <nav aria-label="Pasos">
+    <button id="n-carga" aria-current="page"><b>1</b>Carga</button>
+    <button id="n-analisis" disabled><b>2</b>Análisis</button>
+    <button id="n-dashboard" disabled><b>3</b>Dashboard</button>
+    <button id="n-informe" disabled><b>4</b>Informe</button>
+  </nav>
+  <div class="who" id="who" hidden><span id="who-mail"></span><a href="/cdn-cgi/access/logout">Cerrar sesión</a></div>
+</div></header>
+<div class="banner"><div class="wrap">Consola de análisis de seguridad<small>Del registro de eventos al informe técnico</small></div></div>
+
+<main class="wrap">
+  <section id="view-carga">
+    <div class="drop">
+      <div class="zone" id="zone">
+        <h1>Carga el Excel de logs</h1>
+        <p class="lead">Arrastra un archivo .xlsx o elígelo desde tu equipo. La detección corre en tu navegador y el archivo no se sube a ningún servidor.</p>
+        <div class="row">
+          <button class="btn pri" id="pick">Elegir archivo</button>
+          <button class="btn" id="bundled">Probar con datos de demostración</button>
+          <input type="file" id="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+        </div>
+        <p class="privacy">Al pedir la redacción con IA, los hallazgos y sus filas de evidencia se envían a la API de Anthropic. Carga logs reales solo si tu organización lo autoriza.</p>
+        <div class="notice err" id="err" hidden role="alert"></div>
+      </div>
+      <div class="how">
+        <h3>Cómo llega a una conclusión</h3>
+        <ol>
+          <li><div><strong>Las reglas detectan</strong><span>Correlacionan eventos por fuente, cuenta y ventana de tiempo.</span></div></li>
+          <li><div><strong>Los criterios clasifican</strong><span>Umbrales fijos deciden Crítico, Alto, Medio o Bajo.</span></div></li>
+          <li><div><strong>La IA redacta</strong><span>Explica cada hallazgo y propone el plan de acción.</span></div></li>
+          <li><div><strong>La app verifica</strong><span>Descarta el texto con filas, IPs o cifras que no están en los logs.</span></div></li>
+        </ol>
+      </div>
+    </div>
+    <div id="preview" class="stack" hidden>
+      <div class="row between">
+        <div><h2 id="pv-title"></h2><small id="pv-sub" class="muted"></small></div>
+        <button class="btn pri" id="analyze">Analizar eventos</button>
+      </div>
+      <div class="notice" id="pv-meta" hidden></div>
+      <div class="row"><div class="chips" id="pv-sheets"></div><input class="search" id="pv-q" type="search" placeholder="Buscar en las filas: IP, usuario, texto" aria-label="Buscar en las filas"></div>
+      <div class="tablebox"><table id="pv-table"></table></div>
+      <div class="row between"><small id="pv-count" class="muted"></small><div class="row"><button class="btn" id="pv-prev">Anterior</button><button class="btn" id="pv-next">Siguiente</button></div></div>
+    </div>
+  </section>
+
+  <section id="view-analisis" hidden>
+    <div class="row between end">
+      <div><h1>Hallazgos</h1><p class="lead" id="a-sub"></p></div>
+      <button class="btn pri" id="to-dash">Ver dashboard</button>
+    </div>
+    <div class="row"><div class="chips" id="a-sev"></div><div class="chips" id="a-sheet"></div></div>
+    <div class="queue" id="a-list"></div>
+    <div class="grid2">
+      <div class="panel"><h3>Criterios de criticidad</h3><div class="tablebox"><table id="a-matrix"></table></div></div>
+      <div class="panel"><h3>Reglas evaluadas sin coincidencias</h3><small>También forman parte del análisis: indican lo que se buscó y no aparece en los registros.</small><ul id="a-nomatch" class="plain-list"></ul></div>
+    </div>
+  </section>
+
+  <section id="view-dashboard" hidden>
+    <div class="kpis" id="d-kpis"></div>
+    <div class="sevtiles" id="d-tiles"></div>
+    <div class="grid2">
+      <div class="panel"><h3>Hallazgos por criticidad</h3><small>Selecciona un sector para filtrar la lista inferior.</small><div class="donut"><canvas id="c-sev" role="img" aria-label="Hallazgos por criticidad"></canvas><div class="c"><b id="d-total"></b><span>hallazgos</span></div></div></div>
+      <div class="panel"><h3>Principales fuentes de intentos fallidos</h3><small>El color indica la criticidad. Selecciona una barra para abrir su hallazgo.</small><div class="cv"><canvas id="c-src" role="img" aria-label="Fuentes con más intentos fallidos"></canvas></div></div>
+      <div class="panel"><div class="row between"><h3>Actividad en el tiempo</h3><div class="chips" id="d-sheet"></div></div><small id="d-unit"></small><div class="cv"><canvas id="c-time" role="img" aria-label="Eventos en el tiempo"></canvas></div></div>
+      <div class="panel"><h3>Tipos de evento</h3><small id="d-types-sub"></small><div class="cv"><canvas id="c-type" role="img" aria-label="Eventos por tipo"></canvas></div></div>
+    </div>
+    <div class="panel"><div class="row between"><h3 id="d-list-t">Todos los hallazgos</h3><button class="btn pri" id="to-rep">Ir al informe</button></div><div class="tablebox"><table id="d-list"></table></div></div>
+  </section>
+
+  <section id="view-informe" hidden>
+    <div class="side">
+      <aside class="panel">
+        <h3>Generar informe</h3>
+        <div class="field"><label for="r-name">Analista</label><input id="r-name" placeholder="Nombre del analista" autocomplete="name"></div>
+        <div class="field"><label for="r-org">Proyecto</label><input id="r-org" placeholder="Organización o proyecto"></div>
+        <button class="btn pri" id="r-ai">Redactar con IA</button>
+        <button class="btn" id="r-stop" hidden>Detener</button>
+        <button class="btn" id="r-pdf">Descargar PDF</button>
+        <div class="status" id="r-status" role="status"></div>
+        <div class="vbox" id="r-verify"></div>
+      </aside>
+      <article class="doc" id="r-doc"></article>
+    </div>
+  </section>
+</main>
+</div>
+<footer class="foot"><div class="wrap">Vigía SOC · Las conclusiones se basan únicamente en las filas del archivo analizado.</div></footer>
+</body>
+</html>

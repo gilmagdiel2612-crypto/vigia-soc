@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "vigia-soc",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Solo se publica en tu dominio protegido: estas direcciones saltarian Cloudflare Access.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  // PASO 1 de la guia: tu dominio.
+  "routes": [{ "pattern": "CAMBIA-ESTO.example.com", "custom_domain": true }],
+
+  "vars": {
+    // PASO 2 de la guia: datos de tu aplicacion en Cloudflare Access.
+    "ACCESS_TEAM_DOMAIN": "https://CAMBIA-ESTO.cloudflareaccess.com",
+    "ACCESS_AUD": "CAMBIA-ESTO"
+  },
+
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+    "not_found_handling": "404-page"
+  },
+
+  // Maximo de informes por persona y por minuto.
+  "ratelimits": [
+    { "name": "LIMITE", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "vigia-soc",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/",
+    "dev:mock": "node dev/servidor-prueba.mjs",
+    "check": "wrangler deploy --dry-run --outdir .wrangler/check",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0",
+    "jose": "6.2.13"
+  },
+  "devDependencies": {
+    "wrangler": "4.158.0"
+  }
+}
